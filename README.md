@@ -1,6 +1,6 @@
 # 📱 QR Code Generator
 
-## ** Instantly generate QR Codes **
+## **Instantly generate QR Codes**
 
 ## ✨ Key features :
 
@@ -20,11 +20,11 @@
    -  ⬇️ Export the QR code as a PNG;
    -  📋 Copy the image to the clipboard (native support)
 
-## ** Advanced customisation ** :
+## **Advanced customisation** :
   - QR Code sizes (150px, 250px, 350px);
   - Error correction level (L, M, Q, H) – explained in the information section.
 
-## ** Privacy and security ** :
+## **Privacy and security** :
   - All data is processed locally in the browser – nothing is sent to external servers.
 
 ## Author
