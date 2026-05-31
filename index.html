@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>QR Codes Generator</title>
+  <meta name="description" content="Generatore di codici QR professionale e gratuito. Crea QR per URL, Wi-Fi, email, telefono, social media (Instagram, LinkedIn, GitHub). Supporto correzione errori L/M/Q/H. Interfaccia bilingue italiano/inglese.">
+  <meta name="keywords" content="QR code, generatore QR, codice QR, Wi-Fi QR, social QR, Instagram QR, LinkedIn QR, GitHub QR">
+  <meta name="author" content="QR Generator">
+  <meta name="robots" content="index, follow">
+  <!-- Favicon from GitHub via jsDelivr -->
+  <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/andreadevita99/QR-Code-Generator@main/favicon.png">
+  <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/andreadevita99/QR-Code-Generator@main/favicon.png">
+  <!-- Libreria QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* VARIABILI CSS – TEMA CHIARO (default) */
+    :root {
+      --bg-body: #f9fafb;
+      --card-bg: #ffffff;
+      --text-primary: #1f2937;
+      --text-secondary: #4b5563;
+      --accent: #1e3a8a;
+      --accent-light: #dbeafe;
+      --border-light: #e5e7eb;
+      --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      --radius-card: 1.25rem;
+      --radius-element: 0.75rem;
+      --transition: all 0.2s ease;
+      --error-color: #dc2626;
+    }
+
+    /* TEMA SCURO */
+    body.dark {
+      --bg-body: #111827;
+      --card-bg: #1f2937;
+      --text-primary: #f9fafb;
+      --text-secondary: #d1d5db;
+      --accent: #3b82f6;
+      --accent-light: #1e293b;
+      --border-light: #374151;
+    }
+
+    body {
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+      line-height: 1.5;
+      padding: 2rem 1rem;
+      transition: background 0.3s, color 0.2s;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* Header con controlli */
+    .header-controls {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    /* Pulsante lingua */
+    .lang-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.85rem;
+    }
+
+    .lang-btn:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+    }
+
+    /* Toggle iOS con icone sole/luna */
+    .theme-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+    }
+    .theme-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 24px;
+      width: 24px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      z-index: 2;
+    }
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+    input:checked + .slider:before {
+      transform: translateX(30px);
+    }
+    /* Icone sole/luna all'interno del toggle */
+    .sun-icon, .moon-icon {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.2s;
+    }
+    .sun-icon {
+      left: 6px;
+    }
+    .moon-icon {
+      right: 6px;
+    }
+    /* In modalità chiara, la luna è leggermente più opaca (opzionale) */
+    body:not(.dark) .moon-icon {
+      opacity: 0.6;
+    }
+    body.dark .sun-icon {
+      opacity: 0.6;
+    }
+
+    /* GRID PRINCIPALE – 2 colonne su desktop, 1 su mobile */
+    .generator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    /* CARD GENERICA */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      background: rgba(0, 0, 0, 0.01);
+    }
+
+    .card-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    /* FORM ELEMENTI */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-element);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-light);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      padding: 0.7rem 1.5rem;
+      border-radius: var(--radius-element);
+      border: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    /* AREA QR CODE + DOWNLOAD */
+    .qr-preview-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 1.5rem;
+    }
+
+    #qrcode {
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-md);
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    #qrcode img, #qrcode canvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+    }
+
+    .download-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* SEZIONE INFO */
+    .info-section {
+      background: var(--card-bg);
+      border-radius: var(--radius-card);
+      padding: 1.8rem;
+      border: 1px solid var(--border-light);
+      margin-top: 1rem;
+    }
+
+    .info-section h3 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .info-section p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .info-section ul {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .wiki-badge {
+      font-size: 0.75rem;
+      background: var(--accent-light);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border-light);
+      padding-top: 2rem;
+    }
+
+    .error-msg {
+      color: var(--error-color);
+      font-size: 0.75rem;
+      margin-top: 0.3rem;
+    }
+
+    hr {
+      margin: 0.5rem 0;
+      border-color: var(--border-light);
+    }
+
+    .helper-text {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+
+    @media (max-width: 768px) {
+      .generator-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      body {
+        padding: 1rem;
+      }
+      .btn {
+        padding: 0.6rem 1.2rem;
+      }
+      .card-body {
+        padding: 1.2rem;
+      }
+      .header-controls {
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header-controls">
+    <button id="langSwitchBtn" class="lang-btn">🇬🇧 English</button>
+    <label class="theme-switch">
+      <input type="checkbox" id="themeToggle">
+      <span class="slider"></span>
+      <span class="sun-icon">☀️</span>
+      <span class="moon-icon">🌙</span>
+    </label>
+  </div>
+
+  <div class="generator-grid">
+    <!-- COLONNA SINISTRA – FORM GENERATORE -->
+    <div class="card">
+      <div class="card-header">
+        <h2><span id="configTitle">📱 Configura il tuo QR Code</span></h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label id="contentTypeLabel">📌 Tipo di contenuto</label>
+          <select id="contentType">
+            <option value="text">📄 Testo libero</option>
+            <option value="url" selected>🌐 URL / Sito web</option>
+            <option value="wifi">📶 Rete Wi-Fi</option>
+            <option value="email">✉️ Email</option>
+            <option value="tel">📞 Telefono</option>
+            <option value="instagram">📸 Instagram</option>
+            <option value="linkedin">🔗 LinkedIn</option>
+            <option value="github">🐙 GitHub</option>
+          </select>
+        </div>
+
+        <!-- Sezione generica -->
+        <div id="genericSection" class="form-group">
+          <label id="genericLabel">✏️ Contenuto</label>
+          <input type="text" id="genericInput" placeholder="Inserisci testo o URL..." value="https://it.wikipedia.org/wiki/Codice_QR">
+          <div id="genericHelper" class="helper-text">Per un URL puoi scrivere anche senza http:// (verrà aggiunto automaticamente)</div>
+        </div>
+
+        <!-- Wi-Fi -->
+        <div id="wifiSection" style="display:none;">
+          <div class="form-group"><label id="wifiSsidLabel">📡 SSID (nome rete)</label><input type="text" id="wifiSsid" placeholder="es. Casa WiFi"></div>
+          <div class="form-group"><label id="wifiPassLabel">🔐 Password</label><input type="password" id="wifiPassword" placeholder="password rete"></div>
+          <div class="form-group"><label id="wifiEncLabel">🛡️ Crittografia</label>
+            <select id="wifiEnc">
+              <option value="WPA">WPA/WPA2</option>
+              <option value="WEP">WEP</option>
+              <option value="nopass">Nessuna password</option>
+            </select>
+          </div>
+          <div class="form-group"><label><input type="checkbox" id="wifiHidden"> <span id="hiddenNetworkLabel">Rete nascosta (Hidden SSID)</span></label></div>
+        </div>
+
+        <!-- Email -->
+        <div id="emailSection" style="display:none;">
+          <div class="form-group"><label id="emailAddrLabel">📧 Indirizzo email</label><input type="email" id="emailAddr" placeholder="esempio@dominio.com"></div>
+          <div class="form-group"><label id="emailSubjLabel">📝 Oggetto (opzionale)</label><input type="text" id="emailSubj" placeholder="Oggetto"></div>
+          <div class="form-group"><label id="emailBodyLabel">💬 Corpo del messaggio (opzionale)</label><textarea id="emailBody" rows="2" placeholder="Testo del messaggio..."></textarea></div>
+        </div>
+
+        <!-- Telefono -->
+        <div id="telSection" style="display:none;">
+          <div class="form-group"><label id="phoneLabel">📞 Numero di telefono</label><input type="tel" id="phoneNumber" placeholder="es. +39 123 4567890"></div>
+        </div>
+
+        <!-- Instagram -->
+        <div id="instagramSection" style="display:none;">
+          <div class="form-group"><label id="instaLabel">📸 Username Instagram</label><input type="text" id="instagramUser" placeholder="es. mario_rossi">
+          <div id="instaHelper" class="helper-text">Il QR punterà a https://instagram.com/username</div></div>
+        </div>
+
+        <!-- LinkedIn -->
+        <div id="linkedinSection" style="display:none;">
+          <div class="form-group"><label id="linkedinLabel">🔗 Username / ID LinkedIn</label><input type="text" id="linkedinUser" placeholder="es. mariorossi">
+          <div id="linkedinHelper" class="helper-text">Il QR punterà a https://linkedin.com/in/username</div></div>
+        </div>
+
+        <!-- GitHub -->
+        <div id="githubSection" style="display:none;">
+          <div class="form-group"><label id="githubLabel">🐙 Username GitHub</label><input type="text" id="githubUser" placeholder="es. mario-rossi">
+          <div id="githubHelper" class="helper-text">Il QR punterà a https://github.com/username</div></div>
+        </div>
+
+        <hr>
+        <div class="form-group">
+          <label id="sizeLabel">📏 Dimensione QR (px)</label>
+          <select id="qrSize">
+            <option value="150">Piccolo (150px)</option>
+            <option value="250" selected>Medio (250px)</option>
+            <option value="350">Grande (350px)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="errorLabel">⚠️ Livello correzione errori</label>
+          <select id="errorCorrection">
+            <option value="L">L – 7% recupero</option>
+            <option value="M" selected>M – 15% recupero</option>
+            <option value="Q">Q – 25% recupero</option>
+            <option value="H">H – 30% recupero</option>
+          </select>
+        </div>
+
+        <button id="generateBtn" class="btn"><span id="generateBtnText">✨ Genera QR Code ✨</span></button>
+      </div>
+    </div>
+
+    <!-- COLONNA DESTRA – ANTEPRIMA QR + DOWNLOAD -->
+    <div class="card">
+      <div class="card-header">
+        <h2><span id="previewTitle">🔍 Anteprima & download</span></h2>
+      </div>
+      <div class="card-body qr-preview-area">
+        <div id="qrcode"></div>
+        <div class="download-buttons">
+          <button id="downloadPng" class="btn-outline btn"><span id="downloadPngText">⬇️ PNG</span></button>
+          <button id="copyToClipboard" class="btn-outline btn"><span id="copyQrText">📋 Copia QR</span></button>
+        </div>
+        <div id="qrErrorMsg" class="error-msg" style="text-align: center; min-height: 1.5rem;"></div>
+        <p id="qrStandardBadge" class="wiki-badge" style="margin-top: 0.5rem;">I codici QR generati rispettano lo standard ISO/IEC 18004</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE TEORICA (testo dinamico bilingue) -->
+  <div class="info-section" id="infoSection">
+    <!-- Popolato via JS -->
+  </div>
+
+  <footer>
+    <p id="footerText">✅ Tutti i codici vengono generati localmente, nessun dato viene inviato a server esterni.</p>
+  </footer>
+</div>
+
+<script>
+  // ------------------------ TRADUZIONI ------------------------
+  const translations = {
+    it: {
+      langBtn: "🇬🇧 English",
+      configTitle: "📱 Configura il tuo QR Code",
+      contentTypeLabel: "📌 Tipo di contenuto",
+      genericLabel: "✏️ Contenuto",
+      genericHelper: "Per un URL puoi scrivere anche senza http:// (verrà aggiunto automaticamente)",
+      wifiSsidLabel: "📡 SSID (nome rete)",
+      wifiPassLabel: "🔐 Password",
+      wifiEncLabel: "🛡️ Crittografia",
+      hiddenNetworkLabel: "Rete nascosta (Hidden SSID)",
+      emailAddrLabel: "📧 Indirizzo email",
+      emailSubjLabel: "📝 Oggetto (opzionale)",
+      emailBodyLabel: "💬 Corpo del messaggio (opzionale)",
+      phoneLabel: "📞 Numero di telefono",
+      instaLabel: "📸 Username Instagram",
+      instaHelper: "Il QR punterà a https://instagram.com/username",
+      linkedinLabel: "🔗 Username / ID LinkedIn",
+      linkedinHelper: "Il QR punterà a https://linkedin.com/in/username",
+      githubLabel: "🐙 Username GitHub",
+      githubHelper: "Il QR punterà a https://github.com/username",
+      sizeLabel: "📏 Dimensione QR (px)",
+      errorLabel: "⚠️ Livello correzione errori",
+      generateBtnText: "✨ Genera QR Code ✨",
+      previewTitle: "🔍 Anteprima & download",
+      downloadPngText: "⬇️ PNG",
+      copyQrText: "📋 Copia QR",
+      qrStandardBadge: "I codici QR generati rispettano lo standard ISO/IEC 18004",
+      footerText: "✅ Tutti i codici vengono generati localmente, nessun dato viene inviato a server esterni.",
+      contentTypeOptions: {
+        text: "📄 Testo libero",
+        url: "🌐 URL / Sito web",
+        wifi: "📶 Rete Wi-Fi",
+        email: "✉️ Email",
+        tel: "📞 Telefono",
+        instagram: "📸 Instagram",
+        linkedin: "🔗 LinkedIn",
+        github: "🐙 GitHub"
+      },
+      errorCorrectionOptions: {
+        L: "L – 7% recupero",
+        M: "M – 15% recupero",
+        Q: "Q – 25% recupero",
+        H: "H – 30% recupero"
+      },
+      sizeOptions: {
+        "150": "Piccolo (150px)",
+        "250": "Medio (250px)",
+        "350": "Grande (350px)"
+      },
+      wifiEncOptions: {
+        "WPA": "WPA/WPA2",
+        "WEP": "WEP",
+        "nopass": "Nessuna password"
+      },
+      infoHtml: `
+        <h3>📖 Cosa sono i Codici QR?</h3>
+        <p>Un <strong>codice QR</strong> (in inglese QR Code, abbreviazione di Quick Response Code, "codice a risposta rapida") è un codice a barre bidimensionale (o codice 2D), ossia a matrice. È composto da moduli neri disposti all'interno di uno schema di forma quadrata. Viene impiegato per memorizzare informazioni generalmente destinate a essere lette tramite un telefono cellulare o uno smartphone. Un singolo codice QR può contenere fino a <strong>7.089 caratteri numerici</strong> o <strong>4.296 caratteri alfanumerici</strong>.</p>
+        <p>Il codice QR fu sviluppato nel <strong>1994</strong> dalla compagnia giapponese <strong>Denso Wave</strong>, appartenente al gruppo Toyota, allo scopo di tracciare i pezzi di automobili nelle fabbriche. Nel 1999, Denso Wave ha rilasciato i brevetti sui codici QR, rendendoli di pubblico dominio e favorendone la diffusione su larga scala. Oggi sono onnipresenti in vari settori, dal marketing al retail, dalla logistica alla sanità, e vengono utilizzati per una miriade di scopi, come condividere URL, connettersi a reti Wi‑Fi, inviare email e visualizzare profili social.</p>
+        <hr style="margin: 1.5rem 0;">
+        <h3>🛡️ Livello di correzione degli errori (Error Correction Level)</h3>
+        <p>Il <strong>livello di correzione degli errori</strong> è una caratteristica fondamentale dei codici QR che ne determina la robustezza. In pratica, durante la creazione del codice, vengono aggiunti dei dati di "backup" ridondanti che permettono di recuperare le informazioni originali anche se una parte del codice viene danneggiata, coperta o resa illeggibile, ad esempio da un logo sovrapposto, dello sporco o una piega. Maggiore è il livello di correzione, maggiore sarà la quantità di dati ridondanti aggiunti e, di conseguenza, la capacità di resistere ai danneggiamenti.</p>
+        <p>Lo standard dei codici QR definisce quattro livelli di correzione degli errori, basati sulla percentuale di "code word" (le unità che compongono i dati) che è possibile ripristinare:</p>
+        <ul>
+          <li><strong>Livello L (Low - Basso):</strong> Permette di ripristinare circa il <strong>7%</strong> dei dati. Offre la minor ridondanza, ma lascia il massimo spazio per i dati effettivi. Ideale per ambienti puliti o dove il codice non verrà danneggiato.</li>
+          <li><strong>Livello M (Medium - Medio):</strong> Permette di ripristinare circa il <strong>15%</strong> dei dati. È il livello di default più comune, un buon compromesso tra capacità di dati e robustezza.</li>
+          <li><strong>Livello Q (Quartile):</strong> Permette di ripristinare circa il <strong>25%</strong> dei dati. Consigliato quando il codice potrebbe subire un danneggiamento moderato.</li>
+          <li><strong>Livello H (High - Alto):</strong> Permette di ripristinare circa il <strong>30%</strong> dei dati. È il livello più robusto, ideale per ambienti difficili (es. fabbriche) o se si prevede di sovrapporre un logo di grandi dimensioni al centro del QR code.</li>
+        </ul>
+        <p>La scelta del livello di correzione è un bilanciamento tra la quantità di dati da codificare e la probabilità che il codice venga danneggiato. Un livello più alto riduce la capacità massima di caratteri del codice, ma lo rende molto più affidabile in condizioni avverse.</p>
+        <div class="wiki-badge">Fonte: <a href="https://it.wikipedia.org/wiki/Codice_QR" target="_blank" rel="noopener noreferrer">Wikipedia – Codice QR</a> | Standard ISO/IEC 18004</div>
+      `,
+      errors: {
+        emptyURL: "Inserisci un URL o testo.",
+        emptyText: "Inserisci del testo da codificare.",
+        emptySSID: "Inserisci il nome della rete Wi-Fi (SSID).",
+        emptyPassword: "Inserisci la password per la rete Wi-Fi.",
+        emptyEmail: "Inserisci l'indirizzo email del destinatario.",
+        emptyPhone: "Inserisci il numero di telefono.",
+        emptyInstagram: "Inserisci il nome utente Instagram.",
+        emptyLinkedin: "Inserisci l’ID/username LinkedIn.",
+        emptyGithub: "Inserisci il nome utente GitHub.",
+        default: "Inserisci un contenuto valido."
+      }
+    },
+    en: {
+      langBtn: "🇮🇹 Italiano",
+      configTitle: "📱 Configure your QR Code",
+      contentTypeLabel: "📌 Content type",
+      genericLabel: "✏️ Content",
+      genericHelper: "For a URL you can also write without http:// (it will be added automatically)",
+      wifiSsidLabel: "📡 SSID (network name)",
+      wifiPassLabel: "🔐 Password",
+      wifiEncLabel: "🛡️ Encryption",
+      hiddenNetworkLabel: "Hidden network (Hidden SSID)",
+      emailAddrLabel: "📧 Email address",
+      emailSubjLabel: "📝 Subject (optional)",
+      emailBodyLabel: "💬 Message body (optional)",
+      phoneLabel: "📞 Phone number",
+      instaLabel: "📸 Instagram username",
+      instaHelper: "QR will point to https://instagram.com/username",
+      linkedinLabel: "🔗 LinkedIn username/ID",
+      linkedinHelper: "QR will point to https://linkedin.com/in/username",
+      githubLabel: "🐙 GitHub username",
+      githubHelper: "QR will point to https://github.com/username",
+      sizeLabel: "📏 QR size (px)",
+      errorLabel: "⚠️ Error correction level",
+      generateBtnText: "✨ Generate QR Code ✨",
+      previewTitle: "🔍 Preview & download",
+      downloadPngText: "⬇️ PNG",
+      copyQrText: "📋 Copy QR",
+      qrStandardBadge: "Generated QR codes comply with ISO/IEC 18004 standard",
+      footerText: "✅ All codes are generated locally, no data is sent to external servers.",
+      contentTypeOptions: {
+        text: "📄 Free text",
+        url: "🌐 URL / Website",
+        wifi: "📶 Wi-Fi network",
+        email: "✉️ Email",
+        tel: "📞 Phone",
+        instagram: "📸 Instagram",
+        linkedin: "🔗 LinkedIn",
+        github: "🐙 GitHub"
+      },
+      errorCorrectionOptions: {
+        L: "L – 7% recovery",
+        M: "M – 15% recovery",
+        Q: "Q – 25% recovery",
+        H: "H – 30% recovery"
+      },
+      sizeOptions: {
+        "150": "Small (150px)",
+        "250": "Medium (250px)",
+        "350": "Large (350px)"
+      },
+      wifiEncOptions: {
+        "WPA": "WPA/WPA2",
+        "WEP": "WEP",
+        "nopass": "No password"
+      },
+      infoHtml: `
+        <h3>📖 What are QR Codes?</h3>
+        <p>A <strong>QR code</strong> (Quick Response code) is a two-dimensional barcode (or matrix code), consisting of black modules arranged in a square pattern. It is used to store information intended to be read by a smartphone or mobile phone. A single QR code can hold up to <strong>7,089 numeric characters</strong> or <strong>4,296 alphanumeric characters</strong>.</p>
+        <p>The QR code was developed in <strong>1994</strong> by the Japanese company <strong>Denso Wave</strong>, a subsidiary of Toyota, to track automotive parts in factories. In 1999, Denso Wave released the patents on QR codes, making them public domain and promoting widespread adoption. Today they are ubiquitous in various sectors, from marketing to retail, logistics to healthcare, and are used for countless purposes, such as sharing URLs, connecting to Wi‑Fi networks, sending emails, and viewing social profiles.</p>
+        <hr style="margin: 1.5rem 0;">
+        <h3>🛡️ Error Correction Level</h3>
+        <p>The <strong>error correction level</strong> is a fundamental feature of QR codes that determines their robustness. In practice, redundant "backup" data is added during code creation, allowing the original information to be recovered even if part of the code is damaged, covered, or made illegible (e.g., by a superimposed logo, dirt, or a crease). The higher the correction level, the more redundant data is added, and consequently the greater the resistance to damage.</p>
+        <p>The QR code standard defines four error correction levels, based on the percentage of "code words" that can be restored:</p>
+        <ul>
+          <li><strong>Level L (Low):</strong> Restores about <strong>7%</strong> of data. Offers minimal redundancy but leaves maximum space for actual data. Ideal for clean environments or where the code will not be damaged.</li>
+          <li><strong>Level M (Medium):</strong> Restores about <strong>15%</strong> of data. The most common default level, a good compromise between data capacity and robustness.</li>
+          <li><strong>Level Q (Quartile):</strong> Restores about <strong>25%</strong> of data. Recommended when the code may suffer moderate damage.</li>
+          <li><strong>Level H (High):</strong> Restores about <strong>30%</strong> of data. The most robust level, ideal for harsh environments (e.g., factories) or if you plan to superimpose a large logo in the center of the QR code.</li>
+        </ul>
+        <p>Choosing the correction level is a trade-off between the amount of data to encode and the likelihood of the code being damaged. A higher level reduces the maximum character capacity but makes the code much more reliable under adverse conditions.</p>
+        <div class="wiki-badge">Source: <a href="https://en.wikipedia.org/wiki/QR_code" target="_blank" rel="noopener noreferrer">Wikipedia – QR code</a> | ISO/IEC 18004 standard</div>
+      `,
+      errors: {
+        emptyURL: "Please enter a URL or text.",
+        emptyText: "Please enter text to encode.",
+        emptySSID: "Please enter the Wi-Fi network name (SSID).",
+        emptyPassword: "Please enter the Wi-Fi password.",
+        emptyEmail: "Please enter the recipient email address.",
+        emptyPhone: "Please enter the phone number.",
+        emptyInstagram: "Please enter the Instagram username.",
+        emptyLinkedin: "Please enter the LinkedIn username/ID.",
+        emptyGithub: "Please enter the GitHub username.",
+        default: "Please enter valid content."
+      }
+    }
+  };
+
+  let currentLang = 'it';
+
+  function updateUILanguage() {
+    const t = translations[currentLang];
+    document.getElementById('configTitle').innerText = t.configTitle;
+    document.getElementById('contentTypeLabel').innerText = t.contentTypeLabel;
+    document.getElementById('genericLabel').innerText = t.genericLabel;
+    document.getElementById('genericHelper').innerText = t.genericHelper;
+    document.getElementById('wifiSsidLabel').innerText = t.wifiSsidLabel;
+    document.getElementById('wifiPassLabel').innerText = t.wifiPassLabel;
+    document.getElementById('wifiEncLabel').innerText = t.wifiEncLabel;
+    document.getElementById('hiddenNetworkLabel').innerText = t.hiddenNetworkLabel;
+    document.getElementById('emailAddrLabel').innerText = t.emailAddrLabel;
+    document.getElementById('emailSubjLabel').innerText = t.emailSubjLabel;
+    document.getElementById('emailBodyLabel').innerText = t.emailBodyLabel;
+    document.getElementById('phoneLabel').innerText = t.phoneLabel;
+    document.getElementById('instaLabel').innerText = t.instaLabel;
+    document.getElementById('instaHelper').innerText = t.instaHelper;
+    document.getElementById('linkedinLabel').innerText = t.linkedinLabel;
+    document.getElementById('linkedinHelper').innerText = t.linkedinHelper;
+    document.getElementById('githubLabel').innerText = t.githubLabel;
+    document.getElementById('githubHelper').innerText = t.githubHelper;
+    document.getElementById('sizeLabel').innerText = t.sizeLabel;
+    document.getElementById('errorLabel').innerText = t.errorLabel;
+    document.getElementById('generateBtnText').innerText = t.generateBtnText;
+    document.getElementById('previewTitle').innerText = t.previewTitle;
+    document.getElementById('downloadPngText').innerText = t.downloadPngText;
+    document.getElementById('copyQrText').innerText = t.copyQrText;
+    document.getElementById('qrStandardBadge').innerText = t.qrStandardBadge;
+    document.getElementById('footerText').innerText = t.footerText;
+    document.getElementById('langSwitchBtn').innerText = t.langBtn;
+
+    const contentTypeSelect = document.getElementById('contentType');
+    for (let i = 0; i < contentTypeSelect.options.length; i++) {
+      const opt = contentTypeSelect.options[i];
+      const val = opt.value;
+      opt.text = t.contentTypeOptions[val];
+    }
+
+    const qrSizeSelect = document.getElementById('qrSize');
+    for (let i = 0; i < qrSizeSelect.options.length; i++) {
+      qrSizeSelect.options[i].text = t.sizeOptions[qrSizeSelect.options[i].value];
+    }
+
+    const ecSelect = document.getElementById('errorCorrection');
+    for (let i = 0; i < ecSelect.options.length; i++) {
+      ecSelect.options[i].text = t.errorCorrectionOptions[ecSelect.options[i].value];
+    }
+
+    const wifiEncSelect = document.getElementById('wifiEnc');
+    for (let i = 0; i < wifiEncSelect.options.length; i++) {
+      wifiEncSelect.options[i].text = t.wifiEncOptions[wifiEncSelect.options[i].value];
+    }
+
+    document.getElementById('infoSection').innerHTML = t.infoHtml;
+    document.documentElement.lang = currentLang === 'it' ? 'it' : 'en';
+    // Titolo fisso "QR Codes Generator" per entrambe le lingue
+    document.title = "QR Codes Generator";
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', currentLang === 'it' ? 'Generatore di codici QR professionale e gratuito. Crea QR per URL, Wi-Fi, email, telefono, social media.' : 'Professional and free QR code generator. Create QR for URL, Wi-Fi, email, phone, social media.');
+    }
+  }
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    updateUILanguage();
+    generateQR();
+  }
+
+  // ------------------------ TEMA (Dark/Light) ------------------------
+  const themeToggle = document.getElementById('themeToggle');
+  if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark');
+    themeToggle.checked = true;
+  } else if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.remove('dark');
+    themeToggle.checked = false;
+  } else {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+      themeToggle.checked = true;
+    }
+  }
+  themeToggle.addEventListener('change', function() {
+    if (this.checked) {
+      document.body.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  });
+
+  // ------------------------ LOGICA QR ------------------------
+  const contentTypeSelect = document.getElementById('contentType');
+  const genericSection = document.getElementById('genericSection');
+  const genericInput = document.getElementById('genericInput');
+  const wifiSection = document.getElementById('wifiSection');
+  const emailSection = document.getElementById('emailSection');
+  const telSection = document.getElementById('telSection');
+  const instagramSection = document.getElementById('instagramSection');
+  const linkedinSection = document.getElementById('linkedinSection');
+  const githubSection = document.getElementById('githubSection');
+  const qrSizeSelect = document.getElementById('qrSize');
+  const errorCorrectionSelect = document.getElementById('errorCorrection');
+  const generateBtn = document.getElementById('generateBtn');
+  const qrcodeDiv = document.getElementById('qrcode');
+  const downloadPngBtn = document.getElementById('downloadPng');
+  const copyBtn = document.getElementById('copyToClipboard');
+  const qrErrorMsg = document.getElementById('qrErrorMsg');
+
+  let currentQR = null;
+
+  function updateSectionsVisibility() {
+    const type = contentTypeSelect.value;
+    genericSection.style.display = 'none';
+    wifiSection.style.display = 'none';
+    emailSection.style.display = 'none';
+    telSection.style.display = 'none';
+    instagramSection.style.display = 'none';
+    linkedinSection.style.display = 'none';
+    githubSection.style.display = 'none';
+
+    switch(type) {
+      case 'wifi': wifiSection.style.display = 'block'; break;
+      case 'email': emailSection.style.display = 'block'; break;
+      case 'tel': telSection.style.display = 'block'; break;
+      case 'instagram': instagramSection.style.display = 'block'; break;
+      case 'linkedin': linkedinSection.style.display = 'block'; break;
+      case 'github': githubSection.style.display = 'block'; break;
+      default: genericSection.style.display = 'block';
+    }
+  }
+
+  function escapeWifi(str) {
+    if (!str) return '';
+    return str.replace(/[\\;,:]/g, '\\$&');
+  }
+
+  function getPayload() {
+    const type = contentTypeSelect.value;
+    const t = translations[currentLang].errors;
+    let data = '';
+
+    switch(type) {
+      case 'url':
+        let url = genericInput.value.trim();
+        if (!url) throw new Error(t.emptyURL);
+        if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+        data = url;
+        break;
+      case 'text':
+        data = genericInput.value.trim();
+        if (!data) throw new Error(t.emptyText);
+        break;
+      case 'wifi': {
+        const ssid = document.getElementById('wifiSsid').value.trim();
+        const pwd = document.getElementById('wifiPassword').value;
+        const enc = document.getElementById('wifiEnc').value;
+        const hidden = document.getElementById('wifiHidden').checked;
+        if (!ssid) throw new Error(t.emptySSID);
+        let wifiStr = `WIFI:S:${escapeWifi(ssid)};`;
+        if (enc !== 'nopass') {
+          if (!pwd) throw new Error(t.emptyPassword);
+          wifiStr += `T:${enc};P:${escapeWifi(pwd)};`;
+        } else {
+          wifiStr += `T:nopass;`;
+        }
+        if (hidden) wifiStr += `H:true;`;
+        wifiStr += `;`;
+        data = wifiStr;
+        break;
+      }
+      case 'email': {
+        let to = document.getElementById('emailAddr').value.trim();
+        let subj = document.getElementById('emailSubj').value.trim();
+        let body = document.getElementById('emailBody').value.trim();
+        if (!to) throw new Error(t.emptyEmail);
+        data = `mailto:${to}`;
+        if (subj || body) {
+          let params = [];
+          if (subj) params.push(`subject=${encodeURIComponent(subj)}`);
+          if (body) params.push(`body=${encodeURIComponent(body)}`);
+          data += `?${params.join('&')}`;
+        }
+        break;
+      }
+      case 'tel': {
+        let phone = document.getElementById('phoneNumber').value.trim();
+        if (!phone) throw new Error(t.emptyPhone);
+        data = `tel:${phone}`;
+        break;
+      }
+      case 'instagram': {
+        let username = document.getElementById('instagramUser').value.trim();
+        if (!username) throw new Error(t.emptyInstagram);
+        username = username.replace(/^@/, '');
+        data = `https://instagram.com/${username}`;
+        break;
+      }
+      case 'linkedin': {
+        let username = document.getElementById('linkedinUser').value.trim();
+        if (!username) throw new Error(t.emptyLinkedin);
+        data = `https://linkedin.com/in/${username}`;
+        break;
+      }
+      case 'github': {
+        let username = document.getElementById('githubUser').value.trim();
+        if (!username) throw new Error(t.emptyGithub);
+        data = `https://github.com/${username}`;
+        break;
+      }
+      default:
+        data = genericInput.value.trim();
+        if (!data) throw new Error(t.default);
+    }
+    return data;
+  }
+
+  function generateQR() {
+    qrErrorMsg.textContent = '';
+    try {
+      let content = getPayload();
+      let size = parseInt(qrSizeSelect.value);
+      let correctLevel = errorCorrectionSelect.value;
+      qrcodeDiv.innerHTML = '';
+      let levelMap = { 'L': 0, 'M': 1, 'Q': 2, 'H': 3 };
+      let ecLevel = levelMap[correctLevel] !== undefined ? levelMap[correctLevel] : 1;
+      new QRCode(qrcodeDiv, {
+        text: content,
+        width: size,
+        height: size,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: ecLevel
+      });
+      currentQR = { content, size, ecLevel };
+    } catch (err) {
+      qrErrorMsg.textContent = `⚠️ ${err.message}`;
+      qrcodeDiv.innerHTML = '<div style="padding: 2rem; color: var(--text-secondary);">❌ Unable to generate QR<br>Check the entered data.</div>';
+      currentQR = null;
+    }
+  }
+
+  function downloadPNG() {
+    const canvas = qrcodeDiv.querySelector('canvas') || qrcodeDiv.querySelector('img');
+    if (!canvas || !currentQR) {
+      qrErrorMsg.textContent = currentLang === 'it' ? '⚠️ Genera prima un QR valido.' : '⚠️ Generate a valid QR first.';
+      return;
+    }
+    let link = document.createElement('a');
+    let imageData = canvas.toDataURL ? canvas.toDataURL('image/png') : canvas.src;
+    link.download = `qr-code-${Date.now()}.png`;
+    link.href = imageData;
+    link.click();
+  }
+
+  async function copyQRToClipboard() {
+    const canvas = qrcodeDiv.querySelector('canvas');
+    if (!canvas || !currentQR) {
+      qrErrorMsg.textContent = currentLang === 'it' ? '⚠️ Genera prima un QR valido.' : '⚠️ Generate a valid QR first.';
+      return;
+    }
+    try {
+      canvas.toBlob(async (blob) => {
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        const msg = currentLang === 'it' ? '✅ QR copiato come immagine negli appunti!' : '✅ QR copied as image to clipboard!';
+        qrErrorMsg.textContent = msg;
+        setTimeout(() => { if (qrErrorMsg.textContent === msg) qrErrorMsg.textContent = ''; }, 2000);
+      });
+    } catch (err) {
+      qrErrorMsg.textContent = currentLang === 'it' ? '❌ Copia non riuscita: browser non supportato.' : '❌ Copy failed: browser not supported.';
+    }
+  }
+
+  contentTypeSelect.addEventListener('change', () => {
+    updateSectionsVisibility();
+    generateQR();
+  });
+  generateBtn.addEventListener('click', generateQR);
+  downloadPngBtn.addEventListener('click', downloadPNG);
+  copyBtn.addEventListener('click', copyQRToClipboard);
+
+  document.getElementById('langSwitchBtn').addEventListener('click', () => {
+    const newLang = currentLang === 'it' ? 'en' : 'it';
+    setLanguage(newLang);
+    // Aggiornamento placeholder testuali
+    const ph = translations[currentLang];
+    document.getElementById('genericInput').placeholder = currentLang === 'it' ? 'Inserisci testo o URL...' : 'Enter text or URL...';
+    document.getElementById('wifiSsid').placeholder = currentLang === 'it' ? 'es. Casa WiFi' : 'e.g. Home WiFi';
+    document.getElementById('wifiPassword').placeholder = currentLang === 'it' ? 'password rete' : 'network password';
+    document.getElementById('emailAddr').placeholder = currentLang === 'it' ? 'esempio@dominio.com' : 'example@domain.com';
+    document.getElementById('emailSubj').placeholder = currentLang === 'it' ? 'Oggetto' : 'Subject';
+    document.getElementById('emailBody').placeholder = currentLang === 'it' ? 'Testo del messaggio...' : 'Message body...';
+    document.getElementById('phoneNumber').placeholder = currentLang === 'it' ? 'es. +39 123 4567890' : 'e.g. +1 234 567890';
+    document.getElementById('instagramUser').placeholder = currentLang === 'it' ? 'es. mario_rossi' : 'e.g. john_doe';
+    document.getElementById('linkedinUser').placeholder = currentLang === 'it' ? 'es. mariorossi' : 'e.g. johndoe';
+    document.getElementById('githubUser').placeholder = currentLang === 'it' ? 'es. mario-rossi' : 'e.g. john-doe';
+    generateQR();
+  });
+
+  // Inizializzazione
+  updateSectionsVisibility();
+  setLanguage('it');
+  document.getElementById('genericInput').placeholder = 'Inserisci testo o URL...';
+  generateQR();
+</script>
+</body>
+</html>
