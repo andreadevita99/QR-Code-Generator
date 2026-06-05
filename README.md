@@ -15,7 +15,7 @@
    - 🐙 GitHub;
  - 🌐 Bilingual interface (Italian/English);
  - 🌓 Light/dark theme with an iOS/iPhone style toggle;
- - 📱 Design responsive e mobile‑friendly;
+ - 📱 Responsive and mobile‑friendly design;
  - Download the QR code as a PNG file and copy the image to the clipboard:
    -  ⬇️ Export the QR code as a PNG;
    -  📋 Copy the image to the clipboard (native support)
